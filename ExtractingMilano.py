@@ -11,6 +11,7 @@ import requests
 class OlympicScrapperNew:
     def __init__(self):
         self.prizes = pd.DataFrame()
+        self.event_name = None
         self.medalists = pd.DataFrame()
 
         # Base configuration
@@ -77,38 +78,56 @@ class OlympicScrapperNew:
     # -----------------------------
     def extract_medalists(self, soup=None):
 
-        url = f"{self.base_api}/medals"
-
+        url = f"{self.base_api}/medallists"
         response = requests.get(url, headers=self.headers)
-        data_json = response.json()
 
-        medals_table = data_json["medalStandings"]["medalsTable"]
+        print("Status (medallists):", response.status_code)
+
+        if response.status_code != 200:
+            print(response.text)
+            return None
+
+        data_json = response.json()
+        athletes = data_json.get("athletes", [])
 
         data2 = []
 
-        for country in medals_table:
+        for athlete in athletes:
 
-            country_code = country.get("organisation")
-            disciplines = country.get("disciplines", [])
+            gold = 0
+            silver = 0
+            bronze = 0
+            sport = None
 
-            for discipline in disciplines:
+            medals = athlete.get("medals", [])
 
-                discipline_name = discipline.get("name")
+            for medal in medals:
 
-                medal_winners = discipline.get("medalWinners", [])
+                medal_type_raw = medal.get("medalType")
 
-                for winner in medal_winners:
+                # 🔥 Normalizar tipo de medalla
+                if medal_type_raw == "ME_GOLD":
+                    gold += 1
+                elif medal_type_raw == "ME_SILVER":
+                    silver += 1
+                elif medal_type_raw == "ME_BRONZE":
+                    bronze += 1
 
-                    data2.append(
-                        {
-                            "Event": self.event_name,
-                            "Country": country_code,
-                            "Athlete": winner.get("competitorCode"),
-                            "Sport": discipline_name,
-                            "Event Description": winner.get("eventDescription"),
-                            "Medal Type": winner.get("medalType"),
-                        }
-                    )
+                # Tomar disciplina (solo necesitamos una)
+                if not sport:
+                    sport = medal.get("disciplineName")
+
+            data2.append(
+                {
+                    "Event": self.event_name,
+                    "Country": athlete.get("organisation"),
+                    "Athlete": athlete.get("fullName"),
+                    "Sport": sport,
+                    "Gold": gold,
+                    "Silver": silver,
+                    "Bronze": bronze,
+                }
+            )
 
         self.medalists = pd.DataFrame(data2)
 
@@ -122,3 +141,7 @@ class OlympicScrapperNew:
 
     def extract_medalist_event(self, soup=None):
         return self.event_name
+
+    def format_event_name(self, slug):
+        parts = slug.replace("-", " ").split()
+        return " ".join(word.capitalize() for word in parts)

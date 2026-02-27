@@ -25,7 +25,7 @@ for city in cities:
 
     # Para Milano-Cortina:
     scrap.base_api = "https://www.olympics.com/wmr-owg2026/competition/api/ENG"
-    scrap.event_name = city
+    scrap.event_name = f"Olympic Winter Games {scrap.format_event_name(city)}"
 
     prized = scrap.extract_prizes_list()
 
