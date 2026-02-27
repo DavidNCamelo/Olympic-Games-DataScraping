@@ -65,7 +65,6 @@ class OlympicScrapperNew:
                         "Gold": total_block.get("gold", 0),
                         "Silver": total_block.get("silver", 0),
                         "Bronze": total_block.get("bronze", 0),
-                        "Total": total_block.get("total", 0),
                     }
                 )
 
